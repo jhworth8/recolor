@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Colorization and Style Transfer</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto mt-10 p-4 bg-white shadow-lg max-w-2xl rounded">
+        <h2 class="text-2xl font-bold mb-4">Image Colorization and Style Transfer</h2>
+
+        <!-- Display flash messages -->
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <ul class="flash-messages mb-4">
+                    {% for message in messages %}
+                        <li class="text-red-500">{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Upload and Colorize Form -->
+        <form action="/" method="post" enctype="multipart/form-data" class="mb-4">
+            <label class="cursor-pointer bg-blue-500 text-white font-bold py-2 px-4 rounded inline-block mr-2">
+                <input type="file" name="content" accept="image/*" required class="hidden" onchange="form.submit()">
+                Upload and Colorize
+            </label>
+        </form>
+
+        <!-- Capture and Colorize Form -->
+        <form action="/" method="post" enctype="multipart/form-data" class="mb-4">
+            <label class="cursor-pointer bg-green-500 text-white font-bold py-2 px-4 rounded inline-block">
+                <input type="file" name="content" accept="image/*" capture="camera" required class="hidden" onchange="form.submit()">
+                Capture and Colorize
+            </label>
+        </form>
+
+        <!-- Style Transfer Form -->
+        <form action="/" method="post" enctype="multipart/form-data">
+            <label>Content Image:</label>
+            <input type="file" name="content" required><br>
+            <label>Style Image:</label>
+            <input type="file" name="style" required><br>
+            <input type="submit" value="Upload and Style Transfer">
+        </form>
+        
+        {% if input_image %}
+            <div class="flex gap-4">
+                <div class="w-1/2">
+                    <h2 class="font-bold mb-2">Original Image</h2>
+                    <img src="{{ url_for('uploaded_file', filename=input_image) }}" class="rounded shadow">
+                </div>
+                <div class="w-1/2">
+                    <h2 class="font-bold mb-2">Styled Image</h2>
+                    <img src="{{ url_for('colorized_file', filename=output_image) }}" class="rounded shadow">
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>
