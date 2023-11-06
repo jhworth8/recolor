@@ -5,11 +5,14 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Image Colorization and Style Transfer</title>
+    <!-- Using Tailwind CSS for styling -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <!-- Adding animate.css for animations -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
 </head>
-<body class="bg-gray-100">
-    <div class="container mx-auto mt-10 p-4 bg-white shadow-lg max-w-2xl rounded">
-        <h2 class="text-2xl font-bold mb-4">Image Colorization and Style Transfer</h2>
+<body class="bg-gradient-to-r from-gray-100 to-blue-200 min-h-screen flex items-center justify-center">
+    <div class="container mx-auto p-4 bg-white shadow-lg max-w-4xl rounded-lg border border-gray-200">
+        <h2 class="text-4xl font-bold mb-4 text-center text-gray-800">Image Colorization and Style Transfer</h2>
 
         <!-- Display flash messages -->
         {% with messages = get_flashed_messages() %}
@@ -22,43 +25,66 @@
             {% endif %}
         {% endwith %}
 
-        <!-- Upload and Colorize Form -->
-        <form action="/" method="post" enctype="multipart/form-data" class="mb-4">
-            <label class="cursor-pointer bg-blue-500 text-white font-bold py-2 px-4 rounded inline-block mr-2">
-                <input type="file" name="content" accept="image/*" required class="hidden" onchange="form.submit()">
-                Upload and Colorize
-            </label>
-        </form>
+        <!-- Permanent buttons for uploading and capturing images -->
+        <div class="mb-4 text-center">
+            <form action="/" method="post" enctype="multipart/form-data" class="inline-block">
+                <label class="cursor-pointer bg-blue-500 text-white font-bold py-2 px-4 rounded inline-block mr-2 hover:bg-blue-600 transition duration-300">
+                    <input type="file" name="content" accept="image/*" required class="hidden" onchange="form.submit()">
+                    Upload and Colorize
+                </label>
+            </form>
 
-        <!-- Capture and Colorize Form -->
-        <form action="/" method="post" enctype="multipart/form-data" class="mb-4">
-            <label class="cursor-pointer bg-green-500 text-white font-bold py-2 px-4 rounded inline-block">
-                <input type="file" name="content" accept="image/*" capture="camera" required class="hidden" onchange="form.submit()">
-                Capture and Colorize
-            </label>
-        </form>
+            <form action="/" method="post" enctype="multipart/form-data" class="inline-block">
+                <label class="cursor-pointer bg-green-500 text-white font-bold py-2 px-4 rounded inline-block hover:bg-green-600 transition duration-300">
+                    <input type="file" name="content" accept="image/*" capture="camera" required class="hidden" onchange="form.submit()">
+                    Capture and Colorize
+                </label>
+            </form>
+        </div>
 
-        <!-- Style Transfer Form -->
-        <form action="/" method="post" enctype="multipart/form-data">
-            <label>Content Image:</label>
-            <input type="file" name="content" required><br>
-            <label>Style Image:</label>
-            <input type="file" name="style" required><br>
-            <input type="submit" value="Upload and Style Transfer">
-        </form>
-        
-        {% if input_image %}
-            <div class="flex gap-4">
-                <div class="w-1/2">
-                    <h2 class="font-bold mb-2">Original Image</h2>
-                    <img src="{{ url_for('uploaded_file', filename=input_image) }}" class="rounded shadow">
+        <!-- Button to trigger Style Transfer modal -->
+        <div class="text-center mb-4">
+            <button id="styleTransferBtn" class="bg-purple-500 text-white font-bold py-2 px-4 rounded w-full max-w-xs inline-block hover:bg-purple-600 transition duration-300">Start Style Transfer</button>
+        </div>
+
+        <!-- Style Transfer Modal -->
+        <div id="styleTransferModal" class="hidden">
+            <!-- Style Transfer Form -->
+            <form action="/" method="post" enctype="multipart/form-data">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-gray-700">Content Image:</label>
+                        <input type="file" name="content" required class="block w-full text-sm text-gray-700 border border-gray-300 rounded p-1">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700">Style Image:</label>
+                        <input type="file" name="style" required class="block w-full text-sm text-gray-700 border border-gray-300 rounded p-1">
+                    </div>
                 </div>
-                <div class="w-1/2">
-                    <h2 class="font-bold mb-2">Styled Image</h2>
-                    <img src="{{ url_for('colorized_file', filename=output_image) }}" class="rounded shadow">
+                <input type="submit" value="Upload and Style Transfer" class="cursor-pointer bg-blue-500 text-white font-bold py-2 px-4 rounded hover:bg-orange-600 transition duration-300">
+            </form>
+        </div>
+        
+        <!-- Display Resulting Images -->
+        {% if input_image %}
+            <div class="flex flex-wrap justify-center gap-4 animate__animated animate__fadeIn">
+                <div class="w-full md:w-1/2">
+                    <h2 class="font-bold mb-2 text-center">Original Image</h2>
+                    <img src="{{ url_for('uploaded_file', filename=input_image) }}" class="rounded shadow-lg">
+                </div>
+                <div class="w-full md:w-1/2">
+                    <h2 class="font-bold mb-2 text-center">Styled Image</h2>
+                    <img src="{{ url_for('colorized_file', filename=output_image) }}" class="rounded shadow-lg">
                 </div>
             </div>
         {% endif %}
     </div>
+
+    <!-- Script to handle the Style Transfer modal -->
+    <script>
+        document.getElementById('styleTransferBtn').addEventListener('click', function() {
+            document.getElementById('styleTransferModal').classList.toggle('hidden');
+        });
+    </script>
 </body>
 </html>
