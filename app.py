@@ -7,10 +7,14 @@ from werkzeug.utils import secure_filename
 import tensorflow_hub as hub
 import tensorflow as tf
 import io
+import requests
+from urllib.request import urlretrieve
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 OUTPUT_FOLDER = 'outputs'
 STYLE_TRANSFER_MODEL = 'https://tfhub.dev/google/magenta/arbitrary-image-stylization-v1-256/2'
+GOOGLE_API_KEY = 'AIzaSyCCQAnc1GFCj0ZErdBjC8Qpv4tSkzw6aT4'
+GOOGLE_CSE_ID = '970835fe6194d4ed0'
 
 # Create directories if they don't exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -52,11 +56,10 @@ def upload_file():
     content_filepath = os.path.join(app.config['UPLOAD_FOLDER'], content_filename)
     content_file.save(content_filepath)
 
-    # Convert the image to black and white
-    bw_image_path = convert_to_bw(content_filepath)
-
-    # Check if style file is present for style transfer
+    # Check if a style file is present for style transfer
     style_file = request.files.get('style')
+    style_keyword = request.form.get('style_keyword')  # Get the style keyword from the form
+
     if style_file and style_file.content_type.startswith('image'):
         # Save the style image
         style_filename = secure_filename(style_file.filename)
@@ -64,11 +67,19 @@ def upload_file():
         style_file.save(style_filepath)
 
         # Perform Style Transfer
-        stylized_img_path = style_transfer(bw_image_path, style_filepath)
+        stylized_img_path = style_transfer(content_filepath, style_filepath)
+        return render_template('index.html', input_image=content_filename, style_image=style_filename, output_image=os.path.basename(stylized_img_path))
+    elif style_keyword:
+        # Perform image search and style transfer if a keyword is provided
+        style_filepath, style_filename = search_style_image(style_keyword)
+        if not style_filepath:
+            flash(f'No image found for the keyword "{style_keyword}"')
+            return redirect(request.url)
+        stylized_img_path = style_transfer(content_filepath, style_filepath)
         return render_template('index.html', input_image=content_filename, style_image=style_filename, output_image=os.path.basename(stylized_img_path))
     else:
-        # Perform Colorization
-        colorized_img_path = colorize_image(bw_image_path)
+        # If no style information is provided, proceed with colorization
+        colorized_img_path = colorize_image(content_filepath)
         return render_template('index.html', input_image=content_filename, output_image=os.path.basename(colorized_img_path))
 
 @app.route('/uploads/<filename>')
@@ -119,7 +130,23 @@ def style_transfer(content_path, style_path):
     tf.keras.preprocessing.image.save_img(output_filepath, stylized_img_array)
     return output_filepath
 
+def search_style_image(keyword):
+    search_url = f"https://www.googleapis.com/customsearch/v1?q={keyword}&cx={GOOGLE_CSE_ID}&searchType=image&num=1&key={GOOGLE_API_KEY}"
+    response = requests.get(search_url)
 
+    if response.status_code == 200:
+        search_results = response.json()
+        image_url = search_results['items'][0]['link']
+
+        # Download the image
+        image_data = requests.get(image_url).content
+        style_filename = "{}.jpg".format(keyword)
+        style_filepath = os.path.join(app.config['UPLOAD_FOLDER'], style_filename)
+        with open(style_filepath, 'wb') as f:
+            f.write(image_data)
+        return style_filepath, style_filename
+    else:
+        return None, None
 def load_img(path_to_img):
     img = tf.io.read_file(path_to_img)
     if path_to_img.lower().endswith('.webp'):  # Check if the file is a WEBP
