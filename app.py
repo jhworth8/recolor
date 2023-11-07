@@ -95,9 +95,8 @@ def index():
 
 @app.route('/', methods=['POST'])
 def upload_file():
-    content_file = request.files.get('content')  # use .get to avoid KeyError
-    
-    # Check if the content file is present
+    content_file = request.files.get('content')
+
     if not content_file:
         flash('No content file selected')
         return redirect(request.url)
@@ -106,27 +105,37 @@ def upload_file():
         flash('Content file is not an image')
         return redirect(request.url)
 
-    # Save the content image
     content_filename = secure_filename(content_file.filename)
     content_filepath = os.path.join(app.config['UPLOAD_FOLDER'], content_filename)
     content_file.save(content_filepath)
 
-    # Convert the image to black and white
     bw_image_path = convert_to_bw(content_filepath)
 
-    # Check if style file is present for style transfer
     style_file = request.files.get('style')
+    style_keyword = request.form.get('style_keyword')  # Retrieve keyword from the form
+
+    # If a style file is provided, perform a style transfer
     if style_file and style_file.content_type.startswith('image'):
-        # Save the style image
         style_filename = secure_filename(style_file.filename)
         style_filepath = os.path.join(app.config['UPLOAD_FOLDER'], style_filename)
         style_file.save(style_filepath)
 
-        # Perform Style Transfer
         stylized_img_path = style_transfer(bw_image_path, style_filepath)
         return render_template('index.html', input_image=content_filename, style_image=style_filename, output_image=os.path.basename(stylized_img_path))
+
+    # If a keyword is provided instead of an image, search and download the image
+    elif style_keyword:
+        style_filepath = search_and_download(style_keyword)
+
+        if style_filepath:  # If the image download was successful
+            stylized_img_path = style_transfer(bw_image_path, style_filepath)
+            return render_template('index.html', input_image=content_filename, style_image=os.path.basename(style_filepath), output_image=os.path.basename(stylized_img_path))
+        else:
+            flash('Style image could not be downloaded with the provided keyword')
+            return redirect(request.url)
+
+    # If neither a style file nor a keyword is provided, perform standard colorization
     else:
-        # Perform Colorization
         colorized_img_path = colorize_image(bw_image_path)
         return render_template('index.html', input_image=content_filename, output_image=os.path.basename(colorized_img_path))
 
