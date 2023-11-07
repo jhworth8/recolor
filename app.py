@@ -36,42 +36,42 @@ style_transfer_model = hub.load(STYLE_TRANSFER_MODEL)
 GOOGLE_API_KEY = 'AIzaSyCCQAnc1GFCj0ZErdBjC8Qpv4tSkzw6aT4'
 GOOGLE_CSE_ID = '970835fe6194d4ed0'
 
-# Add a new route in app.py for the search functionality
-@app.route('/search', methods=['GET'])
-def search():
-    search_term = request.args.get('query')
-    print(f"Received search request for term: {search_term}")  # Log the received search term
+# # Add a new route in app.py for the search functionality
+# @app.route('/search', methods=['GET'])
+# def search():
+#     search_term = request.args.get('query')
+#     print(f"Received search request for term: {search_term}")  # Log the received search term
 
-    if not search_term:
-        return jsonify({'error': 'No search term provided'}), 400
+#     if not search_term:
+#         return jsonify({'error': 'No search term provided'}), 400
 
-    search_url = "https://www.googleapis.com/customsearch/v1"
-    params = {
-        'q': search_term,
-        'cx': GOOGLE_CSE_ID,
-        'key': GOOGLE_API_KEY,
-        'searchType': 'image',
-        'num': 4,  # Adjust the number of results if needed
-        'imgSize': 'medium',
-    }
+#     search_url = "https://www.googleapis.com/customsearch/v1"
+#     params = {
+#         'q': search_term,
+#         'cx': GOOGLE_CSE_ID,
+#         'key': GOOGLE_API_KEY,
+#         'searchType': 'image',
+#         'num': 4,  # Adjust the number of results if needed
+#         'imgSize': 'medium',
+#     }
     
-    response = requests.get(search_url, params=params)
-    response_json = response.json()
+#     response = requests.get(search_url, params=params)
+#     response_json = response.json()
     
-    # Check for errors in response
-    if 'error' in response_json:
-        print(f"Error from Google Custom Search: {response_json['error']}")  # Log any errors from Google Custom Search
-        return jsonify(response_json['error']), 500
+#     # Check for errors in response
+#     if 'error' in response_json:
+#         print(f"Error from Google Custom Search: {response_json['error']}")  # Log any errors from Google Custom Search
+#         return jsonify(response_json['error']), 500
     
-    # Extract the image links
-    image_links = [item['link'] for item in response_json.get('items', [])]
+#     # Extract the image links
+#     image_links = [item['link'] for item in response_json.get('items', [])]
     
-    # Log the image URLs
-    for url in image_links:
-        print(f"Image URL: {url}")
+#     # Log the image URLs
+#     for url in image_links:
+#         print(f"Image URL: {url}")
     
-    print(f"Sending back search results for term: {search_term}")  # Log before sending the response
-    return jsonify(image_links)
+#     print(f"Sending back search results for term: {search_term}")  # Log before sending the response
+#     return jsonify(image_links)
 
 
 # Make sure the server can handle cross-origin requests for this route
@@ -190,7 +190,7 @@ def style_transfer(content_path, style_path):
     output_filepath = os.path.join(app.config['OUTPUT_FOLDER'], 'stylized_' + os.path.basename(content_path))
     tf.keras.preprocessing.image.save_img(output_filepath, stylized_img_array)
     return output_filepath
-
+#use this one below.
 def search_and_download(search_term):
     # Function to perform a search and download the first image
     params = {
