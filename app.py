@@ -7,14 +7,13 @@ from werkzeug.utils import secure_filename
 import tensorflow_hub as hub
 import tensorflow as tf
 import io
+from flask import jsonify
 import requests
-from urllib.request import urlretrieve
+from googleapiclient.discovery import build
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 OUTPUT_FOLDER = 'outputs'
 STYLE_TRANSFER_MODEL = 'https://tfhub.dev/google/magenta/arbitrary-image-stylization-v1-256/2'
-GOOGLE_API_KEY = 'AIzaSyCCQAnc1GFCj0ZErdBjC8Qpv4tSkzw6aT4'
-GOOGLE_CSE_ID = '970835fe6194d4ed0'
 
 # Create directories if they don't exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -33,7 +32,63 @@ net.getLayer(net.getLayerId('conv8_313_rh')).blobs = [np.full((1, 313), 2.606, d
 
 # Load Style Transfer model
 style_transfer_model = hub.load(STYLE_TRANSFER_MODEL)
+# Add your Google API key and Custom Search Engine ID here
+GOOGLE_API_KEY = 'AIzaSyCCQAnc1GFCj0ZErdBjC8Qpv4tSkzw6aT4'
+GOOGLE_CSE_ID = '970835fe6194d4ed0'
 
+# Add a new route in app.py for the search functionality
+@app.route('/search', methods=['GET'])
+def search():
+    search_term = request.args.get('query')
+    print(f"Received search request for term: {search_term}")  # Log the received search term
+
+    if not search_term:
+        return jsonify({'error': 'No search term provided'}), 400
+
+    search_url = "https://www.googleapis.com/customsearch/v1"
+    params = {
+        'q': search_term,
+        'cx': GOOGLE_CSE_ID,
+        'key': GOOGLE_API_KEY,
+        'searchType': 'image',
+        'num': 4,  # Adjust the number of results if needed
+        'imgSize': 'medium',
+    }
+    
+    response = requests.get(search_url, params=params)
+    response_json = response.json()
+    
+    # Check for errors in response
+    if 'error' in response_json:
+        print(f"Error from Google Custom Search: {response_json['error']}")  # Log any errors from Google Custom Search
+        return jsonify(response_json['error']), 500
+    
+    # Extract the image links
+    image_links = [item['link'] for item in response_json.get('items', [])]
+    
+    # Log the image URLs
+    for url in image_links:
+        print(f"Image URL: {url}")
+    
+    print(f"Sending back search results for term: {search_term}")  # Log before sending the response
+    return jsonify(image_links)
+
+
+# Make sure the server can handle cross-origin requests for this route
+from flask_cors import CORS
+CORS(app, resources={r"/search": {"origins": "*"}})
+@app.route('/search')
+def search_images():
+    query = request.args.get('query', '')
+    if query:
+        # Call the Google Custom Search API and parse the results
+        search_url = f"https://www.googleapis.com/customsearch/v1?q={query}&cx={GOOGLE_CSE_ID}&searchType=image&key={GOOGLE_API_KEY}&num=1"
+        response = requests.get(search_url)
+        search_results = response.json()
+        image_urls = [item['link'] for item in search_results.get('items', [])]
+        return jsonify(image_urls)
+    else:
+        return jsonify([])
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -56,10 +111,11 @@ def upload_file():
     content_filepath = os.path.join(app.config['UPLOAD_FOLDER'], content_filename)
     content_file.save(content_filepath)
 
-    # Check if a style file is present for style transfer
-    style_file = request.files.get('style')
-    style_keyword = request.form.get('style_keyword')  # Get the style keyword from the form
+    # Convert the image to black and white
+    bw_image_path = convert_to_bw(content_filepath)
 
+    # Check if style file is present for style transfer
+    style_file = request.files.get('style')
     if style_file and style_file.content_type.startswith('image'):
         # Save the style image
         style_filename = secure_filename(style_file.filename)
@@ -67,19 +123,11 @@ def upload_file():
         style_file.save(style_filepath)
 
         # Perform Style Transfer
-        stylized_img_path = style_transfer(content_filepath, style_filepath)
-        return render_template('index.html', input_image=content_filename, style_image=style_filename, output_image=os.path.basename(stylized_img_path))
-    elif style_keyword:
-        # Perform image search and style transfer if a keyword is provided
-        style_filepath, style_filename = search_style_image(style_keyword)
-        if not style_filepath:
-            flash(f'No image found for the keyword "{style_keyword}"')
-            return redirect(request.url)
-        stylized_img_path = style_transfer(content_filepath, style_filepath)
+        stylized_img_path = style_transfer(bw_image_path, style_filepath)
         return render_template('index.html', input_image=content_filename, style_image=style_filename, output_image=os.path.basename(stylized_img_path))
     else:
-        # If no style information is provided, proceed with colorization
-        colorized_img_path = colorize_image(content_filepath)
+        # Perform Colorization
+        colorized_img_path = colorize_image(bw_image_path)
         return render_template('index.html', input_image=content_filename, output_image=os.path.basename(colorized_img_path))
 
 @app.route('/uploads/<filename>')
@@ -130,23 +178,31 @@ def style_transfer(content_path, style_path):
     tf.keras.preprocessing.image.save_img(output_filepath, stylized_img_array)
     return output_filepath
 
-def search_style_image(keyword):
-    search_url = f"https://www.googleapis.com/customsearch/v1?q={keyword}&cx={GOOGLE_CSE_ID}&searchType=image&num=1&key={GOOGLE_API_KEY}"
-    response = requests.get(search_url)
+def search_and_download(search_term):
+    # Function to perform a search and download the first image
+    params = {
+        'q': search_term,
+        'cx': GOOGLE_CSE_ID,
+        'key': GOOGLE_API_KEY,
+        'searchType': 'image',
+        'num': 1,  # We only need one image
+        'imgSize': 'medium',
+    }
 
-    if response.status_code == 200:
-        search_results = response.json()
-        image_url = search_results['items'][0]['link']
+    response = requests.get("https://www.googleapis.com/customsearch/v1", params=params)
+    response_json = response.json()
 
-        # Download the image
-        image_data = requests.get(image_url).content
-        style_filename = "{}.jpg".format(keyword)
-        style_filepath = os.path.join(app.config['UPLOAD_FOLDER'], style_filename)
-        with open(style_filepath, 'wb') as f:
-            f.write(image_data)
-        return style_filepath, style_filename
-    else:
-        return None, None
+    if 'items' in response_json:
+        image_url = response_json['items'][0]['link']
+        style_image_response = requests.get(image_url)
+
+        if style_image_response.status_code == 200:
+            # Save the image to the uploads directory
+            style_image_path = os.path.join(app.config['UPLOAD_FOLDER'], 'style_' + search_term + '.jpg')
+            with open(style_image_path, 'wb') as f:
+                f.write(style_image_response.content)
+            return style_image_path
+    return None
 def load_img(path_to_img):
     img = tf.io.read_file(path_to_img)
     if path_to_img.lower().endswith('.webp'):  # Check if the file is a WEBP
