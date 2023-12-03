@@ -7,6 +7,7 @@ from werkzeug.utils import secure_filename
 import tensorflow_hub as hub
 import tensorflow as tf
 import io
+import time
 import requests
 from googleapiclient.discovery import build
 app = Flask(__name__)
@@ -148,8 +149,13 @@ def style_transfer(content_path, style_path):
     # Convert the result tensor to a numpy array and remove the extra dimension
     stylized_img_array = np.squeeze(stylized_img.numpy())
     
-    # Save the image
-    output_filepath = os.path.join(app.config['OUTPUT_FOLDER'], 'stylized_' + os.path.basename(content_path))
+    # Generate a unique filename
+    timestamp = int(time.time())
+    original_filename = os.path.basename(content_path)
+    unique_filename = f"stylized_{original_filename.split('.')[0]}_{timestamp}.jpg"
+
+    output_filepath = os.path.join(app.config['OUTPUT_FOLDER'], unique_filename)
+
     tf.keras.preprocessing.image.save_img(output_filepath, stylized_img_array)
     return output_filepath
 #use this one below.

@@ -64,6 +64,9 @@
                         <label class="block text-gray-700">Style Image Keyword (optional if image given):</label>
                         <input type="text" name="style_keyword" class="block w-full text-sm text-gray-700 border border-gray-300 rounded p-1" placeholder="Enter keyword">
                     </div>
+                    <div class="text-center mb-4">
+                        <button id="randomStyleBtn" class="bg-red-500 text-white font-bold py-2 px-4 rounded w-full max-w-xs inline-block hover:bg-red-600 transition duration-300">Random Style</button>
+                    </div>
                 </div>
                 <input type="submit" value="Upload and Style Transfer" class="cursor-pointer bg-blue-500 text-white font-bold py-2 px-4 rounded hover:bg-orange-600 transition duration-300">
             </form>
@@ -86,6 +89,11 @@
     <div class="w-full md:w-1/3">
         <h2 class="font-bold mb-2 text-center">Styled Image</h2>
         <img src="{{ url_for('colorized_file', filename=output_image) }}" class="rounded shadow-lg">
+
+        <!-- Download Button -->
+        {% if output_image %}
+            <a href="{{ url_for('colorized_file', filename=output_image) }}" download="{{ output_image }}" class="bg-blue-500 text-white font-bold py-2 px-4 rounded block w-full text-center mt-2 hover:bg-blue-600 transition duration-300">Download</a>
+        {% endif %}
     </div>
 </div>
 {% endif %}
@@ -97,6 +105,23 @@
         document.getElementById('styleTransferBtn').addEventListener('click', function() {
             document.getElementById('styleTransferModal').classList.toggle('hidden');
         });
+        const artStyles = [
+        "Van Gogh's Starry Night", "Abstract geometric patterns", "Japanese Ukiyo-e prints", 
+        "Watercolor landscape", "Art Nouveau posters", "Renaissance oil painting",
+        "Cubism art", "Graffiti street art", "Psychedelic art", 
+        "Impressionist floral paintings", "Surrealist dreamscapes", "Native American textiles",
+        "Art Deco architecture", "African tribal masks", "Chinese ink wash painting",
+        "Medieval tapestry", "Indian Mughal art", "Baroque still life", 
+        "Futurist digital art", "Moroccan mosaic tiles"
+    ];
+
+    document.getElementById('randomStyleBtn').addEventListener('click', function() {
+        const randomStyle = artStyles[Math.floor(Math.random() * artStyles.length)];
+        document.querySelector('input[name="style_keyword"]').value = randomStyle;
+        
+        // Trigger the form submission as if the user entered the term
+        document.querySelector('form[action="/"]').submit();
+    });
     </script>
 </body>
 </html>
