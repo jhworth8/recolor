@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, send_from_directory, flash, redirect
+from flask import Flask, render_template, request, send_from_directory, flash, redirect, jsonify
 import cv2
 import numpy as np
 import os
@@ -7,7 +7,6 @@ from werkzeug.utils import secure_filename
 import tensorflow_hub as hub
 import tensorflow as tf
 import io
-from flask import jsonify
 import requests
 from googleapiclient.discovery import build
 app = Flask(__name__)
@@ -155,30 +154,35 @@ def style_transfer(content_path, style_path):
     return output_filepath
 #use this one below.
 def search_and_download(search_term):
-    # Function to perform a search and download the first image
-    params = {
-        'q': search_term,
-        'cx': GOOGLE_CSE_ID,
-        'key': GOOGLE_API_KEY,
-        'searchType': 'image',
-        'num': 1,  # We only need one image
-        'imgSize': 'medium',
-    }
+    # Function to perform a search and download an image
+    for start_index in range(1, 11, 10):  # Loop to change the start index for search results
+        params = {
+            'q': search_term,
+            'cx': GOOGLE_CSE_ID,
+            'key': GOOGLE_API_KEY,
+            'searchType': 'image',
+            'start': start_index,  # Start index for search results
+            'num': 2,  # Increase the number of results per page
+            'imgSize': 'medium',
+        }
 
-    response = requests.get("https://www.googleapis.com/customsearch/v1", params=params)
-    response_json = response.json()
+        response = requests.get("https://www.googleapis.com/customsearch/v1", params=params)
+        response_json = response.json()
 
-    if 'items' in response_json:
-        image_url = response_json['items'][0]['link']
-        style_image_response = requests.get(image_url)
+        if 'items' in response_json:
+            for item in response_json['items']:
+                image_url = item['link']
+                style_image_response = requests.get(image_url)
 
-        if style_image_response.status_code == 200:
-            # Save the image to the uploads directory
-            style_image_path = os.path.join(app.config['UPLOAD_FOLDER'], 'style_' + search_term + '.jpg')
-            with open(style_image_path, 'wb') as f:
-                f.write(style_image_response.content)
-            return style_image_path
+                if style_image_response.status_code == 200:
+                    # Save the image to the uploads directory
+                    style_image_path = os.path.join(app.config['UPLOAD_FOLDER'], 'style_' + search_term + '_' + str(start_index) + '.jpg')
+                    with open(style_image_path, 'wb') as f:
+                        f.write(style_image_response.content)
+                    return style_image_path
+
     return None
+
 def load_img(path_to_img, max_dim=400):
     img = tf.io.read_file(path_to_img)
 
