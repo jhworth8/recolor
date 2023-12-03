@@ -133,7 +133,12 @@ def colorize_image(filepath):
     img_lab_out = np.concatenate((img_l[:, :, np.newaxis], ab_dec_us), axis=2)
     img_bgr_out = cv2.cvtColor(img_lab_out, cv2.COLOR_Lab2BGR)
     img_bgr_out = np.clip(img_bgr_out * 255, 0, 255).astype(np.uint8)
-    output_filepath = os.path.join(app.config['OUTPUT_FOLDER'], 'colorized_' + os.path.basename(filepath))
+    # Generate a unique filename
+    timestamp = int(time.time())
+    original_filename = os.path.basename(filepath)
+    unique_filename = f"colorized_{original_filename.split('.')[0]}_{timestamp}.jpg"
+
+    output_filepath = os.path.join(app.config['OUTPUT_FOLDER'], unique_filename)
     cv2.imwrite(output_filepath, img_bgr_out)
     return output_filepath
 
