@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, send_from_directory, flash, redirect, jsonify
 import cv2
+from flask_cors import CORS
 import numpy as np
 import os
 from PIL import Image, ExifTags
@@ -32,13 +33,12 @@ net.getLayer(net.getLayerId('conv8_313_rh')).blobs = [np.full((1, 313), 2.606, d
 
 # Load Style Transfer model
 style_transfer_model = hub.load(STYLE_TRANSFER_MODEL)
-# Add your Google API key and Custom Search Engine ID here
+
 GOOGLE_API_KEY = 'AIzaSyCCQAnc1GFCj0ZErdBjC8Qpv4tSkzw6aT4'
 GOOGLE_CSE_ID = '970835fe6194d4ed0'
 
 
-# Make sure the server can handle cross-origin requests for this route
-from flask_cors import CORS
+
 CORS(app, resources={r"/search": {"origins": "*"}})
 @app.route('/search')
 def search_images():
@@ -72,7 +72,6 @@ def upload_file():
     content_filepath = os.path.join(app.config['UPLOAD_FOLDER'], content_filename)
     content_file.save(content_filepath)
 
-    # Initialize the path for the styled image (to be used if style transfer occurs)
     stylized_img_path = None
 
     style_file = request.files.get('style')
@@ -117,7 +116,8 @@ def colorized_file(filename):
 def convert_to_bw(filepath):
     img = cv2.imread(filepath)
     bw_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    cv2.imwrite(filepath, bw_img)  # Overwrite the original image with its black and white version
+    cv2.imwrite(filepath, bw_img)  
+    # Overwrite the original image with its black and white version
     return filepath
 
 def colorize_image(filepath):
@@ -142,11 +142,11 @@ def colorize_image(filepath):
     cv2.imwrite(output_filepath, img_bgr_out)
     return output_filepath
 
-def style_transfer(content_path, style_path):
+def style_transfer(content_path, style_path, style_max_dim=200):
     # Ensure the model is correctly named to avoid recursive function calls
     global style_transfer_model
     content_img = load_img(content_path)
-    style_img = load_img(style_path)
+    style_img = load_img(style_path, max_dim=style_max_dim)
     
     # Perform style transfer using the TensorFlow Hub model
     stylized_img = style_transfer_model(tf.constant(content_img), tf.constant(style_img))[0]
@@ -163,18 +163,18 @@ def style_transfer(content_path, style_path):
 
     tf.keras.preprocessing.image.save_img(output_filepath, stylized_img_array)
     return output_filepath
-#use this one below.
+
 def search_and_download(search_term):
     # Function to perform a search and download an image
-    for start_index in range(1, 11, 10):  # Loop to change the start index for search results
+    for start_index in range(1, 11, 10): 
         params = {
             'q': search_term,
             'cx': GOOGLE_CSE_ID,
             'key': GOOGLE_API_KEY,
             'searchType': 'image',
-            'start': start_index,  # Start index for search results
-            'num': 2,  # Increase the number of results per page
-            'imgSize': 'medium',
+            'start': start_index,
+            'num': 2,
+            'imgSize': 'large',
         }
 
         response = requests.get("https://www.googleapis.com/customsearch/v1", params=params)
@@ -194,10 +194,11 @@ def search_and_download(search_term):
 
     return None
 
-def load_img(path_to_img, max_dim=400):
+def load_img(path_to_img, max_dim=1024):
     img = tf.io.read_file(path_to_img)
 
-    if path_to_img.lower().endswith('.webp'):  # Handle WEBP files
+    if path_to_img.lower().endswith('.webp'):  
+        # Handle WEBP files
         with Image.open(io.BytesIO(img.numpy())) as image:
             with io.BytesIO() as jpeg_io:
                 image.convert('RGB').save(jpeg_io, 'JPEG')
