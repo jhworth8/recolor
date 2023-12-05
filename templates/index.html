@@ -75,18 +75,18 @@
 <!-- Display Resulting Images -->
 {% if input_image %}
 <div class="flex flex-wrap justify-center gap-4 animate__animated animate__fadeIn">
-    <div class="w-full md:w-1/3">
+    <div class="w-full md:w-2/5">
         <h2 class="font-bold mb-2 text-center">Original Image</h2>
         <img src="{{ url_for('uploaded_file', filename=input_image) }}" class="rounded shadow-lg">
     </div>
     <!-- Conditional Block for Style Image -->
     {% if style_image %}
-    <div class="w-full md:w-1/3">
+    <div class="w-full md:w-2/5">
         <h2 class="font-bold mb-2 text-center">Style Image</h2>
         <img src="{{ url_for('uploaded_file', filename=style_image) }}" class="rounded shadow-lg">
     </div>
     {% endif %}
-    <div class="w-full md:w-1/3">
+    <div class="w-full md:w-2/5">
         <h2 class="font-bold mb-2 text-center">Styled Image</h2>
         <img src="{{ url_for('colorized_file', filename=output_image) }}" class="rounded shadow-lg">
 
@@ -112,7 +112,13 @@
         "Impressionist floral paintings", "Surrealist dreamscapes", "Native American textiles",
         "Art Deco architecture", "African tribal masks", "Chinese ink wash painting",
         "Medieval tapestry", "Indian Mughal art", "Baroque still life", 
-        "Futurist digital art", "Moroccan mosaic tiles"
+        "Futurist digital art", "Moroccan mosaic tiles", "Glitch art distortion", "Arctic ice sculptures", "Victorian Gothic architecture", 
+        "Neon vaporwave aesthetics", "Ancient Egyptian hieroglyphs", "Caribbean carnival costumes", 
+        "Steampunk industrial design", "Hyper-realistic miniature models", "Aurora borealis night skies", 
+        "Artisan glassblowing textures", "Retro-futuristic space art", "Underwater coral reef photography",
+        "High fashion runway designs", "3D fractal explorations", "Avant-garde kinetic sculptures",
+        "Amazon rainforest wildlife", "Traditional Tibetan thangka", "Post-apocalyptic urban landscapes", 
+        "Silk Road tapestries", "Cyberpunk city neon lights"
     ];
 
     document.getElementById('randomStyleBtn').addEventListener('click', function() {
